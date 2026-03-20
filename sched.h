@@ -67,4 +67,7 @@ struct process *create_process();
 void switch_to_process(struct registers *regs);
 struct process *copy_process(struct process *parent);
 void sched_init();
-void schedule`
+void schedule();
+
+#endif
+
