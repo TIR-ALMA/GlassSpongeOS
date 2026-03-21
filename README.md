@@ -39,7 +39,20 @@ Programming tools:
 
 Vim 
 
-GCC 
+GCC .
+
+The project has three mottos: 
+
+
+1. If something can't be created, it can be either created using a neural network or replaced with a neural network.
+
+
+2. The best features from absolutely every OS in the world.
+
+ 
+4. The easier a project is to understand, the faster it is to develop.
+
+
 
 
 
