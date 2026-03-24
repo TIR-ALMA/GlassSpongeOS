@@ -1,5 +1,6 @@
 # GlassSponge
 # OS with Liquid Nero Network
+![Описание картинки](IMG_3346.jpeg)
 
 
 An innovative OS with a built-in neural network directly into the kernel 
