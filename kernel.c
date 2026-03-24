@@ -7,6 +7,11 @@
 #include "drivers/timer.h"
 #include "drivers/disk.h"
 #include "drivers/network/i8254x.h"
+#include "drivers/network/rtl8168.h"
+#include "drivers/network/i219.h"
+#include "drivers/network/intel_wifi.h"
+#include "drivers/network/intel_ax2xx.h"
+#include "drivers/network/intel_ethernet.h"
 #include "lib/string.h"
 #include "lib/printf.h"
 #include "liquid_nn.h"
@@ -39,8 +44,7 @@ void kernel_main() {
     if(init_proc) {
         strcpy(init_proc->name, "init");
         current_process = init_proc;
-        current_process->state = PROC_RUNNING;
-        
+        current_process->state        
         process_queue = init_proc;
         init_proc->next = init_proc;
         init_proc->prev = init_proc;
@@ -147,8 +151,7 @@ struct gdt_entry gdt[5];
 void init_idt() {
     for(int i = 0; i < 256; i++) {
         idt[i].offset_low = 0;
-        idt[i].selector = 0x08; // Code segment
-        idt[i].zero = 0;
+        idt[i].selector = 0x08;        idt[i].zero = 0;
         idt[i].type_attr = 0x8E; // Present, DPL=0, Type=E
         idt[i].offset_high = 0;
     }
@@ -174,10 +177,10 @@ void init_idt() {
     set_idt_entry(17, (uint64_t)isr17);
     set_idt_entry(18, (uint64_t)isr18);
     set_idt_entry(19, (uint64_t)isr19);
-    set_idt_entry(20, (uint64_t)isr20);
+    set_id64_t)isr20);
     set_idt_entry(21, (uint64_t)isr21);
     set_idt_entry(22, (uint64_t)isr22);
-    set_idt_entry(23, (uint64_t)isr23);
+    set_id3, (uint64_t)isr23);
     set_idt_entry(24, (uint64_t)isr24);
     set_idt_entry(25, (uint64_t)isr25);
     set_idt_entry(26, (uint64_t)isr26);
@@ -273,7 +276,7 @@ void isr16();
 void isr17();
 void isr18();
 void isr19();
-20();
+void isr20();
 void isr21();
 void isr22();
 void isr23();
@@ -287,39 +290,93 @@ void isr30();
 void isr31();
 
 void find_and_init_network_card() {
-    // Search through PCI devices for Intel 8254x NIC
-    // Vendor ID for Intel: 0x8086
+    printf("Scanning for network devices...\n");
+
+    // Search through PCI devices for various NICs
     for(uint8_t bus = 0; bus < 256; bus++) {
         for(uint8_t device = 0; device < 32; device++) {
-            uint32_t vendor_device = pci_read_reg(bus, device, 0, 0x00);
-            uint16_t vendor_id = vendor_device & 0xFFFF;
-            uint16_t device_id = vendor_device >> 16;
-            
-            // Check if it's an Intel 8254x device
-            if(vendor_id == 0x8086 && 
-               (device_id == 0x100E || device_id == 0x100F || 
-                device_id == 0x1013 || device_id == 0x1014 ||
-                device_id == 0x1015 || device_id == 0x1016 ||
-                device_id == 0x1017 || device_id == 0x1018 ||
-                device_id == 0x1019 || device_id == 0x101A ||
-                device_id == 0x101D || device_id == 0x101E ||
-                device_id == 0x1026 || device_id == 0x1027 ||
-                device_id == 0x1028 || device_id == 0x1079 ||
-                device_id == 0x107A || device_id == 0x107B ||
-                device_id == 0x107C || device_id == 0x107D ||
-                device_id == 0x107E || device_id == 0x107F ||
-                device_id == 0x1096 || device_id == 0x1098 ||
-                device_id == 0x1099 || device_id == 0x1010 ||
-                device_id == 0x1012 || device_id == 0x1011 ||
-                device_id == 0x101E || device_id == 0x101F)) {
+            for(uint8_t function = 0; function < 8; function++) {
+                uint32_t vendor_device = pci_read_reg(bus, device, function, 0x00);
+                uint16_t vendor_id = vendor_device & 0xFFFF;
+                uint16_t device_id = vendor_device >> 16;
                 
-                printf("Found Intel 8254x NIC at %d:%d\n", bus, device);
-                i8254x_init(bus, device);
-                return;
+                // Check for Intel 8254x device
+                if(vendor_id == 0x8086 && 
+                   (device_id == 0x100E || device_id == 0x100F || 
+                    device_id == 0x1013 || device_id == 0x1014 ||
+                    device_id == 0x1015 || device_id == 0x1016 ||
+                    device_id == 0x1017 || device_id == 0x1018 ||
+                    device_id == 0x1019 || device_id == 0x101A ||
+                    device_id == 0x101D || device_id == 0x101E ||
+                    device_id == 0x1026 || device_id == 0x1027 ||
+                    device_id == 0x1028 || device_id == 0x1079 ||
+                    device_id == 0x107A || device_id == 0x107B ||
+                    device_id == 0x107C || device_id == 0x107D ||
+                    device_id == 0x107E || device_id == 0x107F ||
+                    device_id == 0x1096 || device_id == 0x1098 ||
+                    device_id == 0x1099 || device_id == 0x1010 ||
+                    device_id == 0x1012 || device_id == 0x1011 ||
+                    device_id == 0x101E || device_id == 0x101F)) {
+                    
+                    printf("Found Intel 8254x NIC at %d:%d.%d\n", bus, device, function);
+                    i8254x_init(bus, device);
+                    return;
+                }
+                
+                // Check for Realtek RTL8168 device
+                if(vendor_id == 0x10EC && 
+                   (device_id == 0x8168 || device_id == 0x8169 || 
+                    device_id == 0x8176 || device_id == 0x8178 || 
+                    device_id == 0x8136)) {
+                    
+                    printf("Found Realtek RTL8168 NIC at %d:%d.%d\n", bus, device, function);
+                    rtl8168_init(bus, device);
+                    return;
+                }
+                
+                // Check for Intel I219 device
+                if(vendor_id == 0x8086 && 
+                   (device_id == 0x15B7 || device_id == 0x15B8)) {
+                    
+                    printf("Found Intel I219 NIC at %d:%d.%d\n", bus, device, function);
+                    i219_init(bus, device);
+                    return;
+                }
+                
+                // Check for Intel AX2XX Wi-Fi devices
+                if(vendor_id == 0x8086 && 
+                   (device_id == 0x2723 || device_id == 0x2725 || 
+                    device_id == 0x2720 || device_id == 0x51F0)) {
+                    
+                    printf("Found Intel AX2XX Wi-Fi at %d:%d.%d\n", bus, device, function);
+                    intel_wifi_init();
+                    return;
+                }
+                
+                // Check for Intel AX210 Wi-Fi devices
+                if(vendor_id == 0x8086 && 
+                   (device_id == 0x2720 || device_id == 0x51F0)) {
+                    
+                    printf("Found Intel AX210 Wi-Fi at %d:%d.%d\n", bus, device, function);
+                    intel_ax2xx_init(bus, device);
+                    return;
+                }
+                
+                // Check for Intel i350/X710/XL710 devices
+                if(vendor_id == 0x8086 && 
+                   (device_id == 0x1521 || device_id == 0x1522 || 
+                    device_id == 0x1531 || device_id == 0x1533 ||
+                    device_id == 0x157B || device_id == 0x157C ||
+                    device_id == 0x1583 || device_id == 0x1584)) {
+                    
+                    printf("Found Intel i350/X710/XL710 NIC at %d:%d.%d\n", bus, device, function);
+                    intel_ethernet_init();
+                    return;
+                }
             }
         }
     }
-    printf("No Intel 8254x NIC found\n");
+    printf("No supported network device found\n");
 }
 
 void timer_interrupt_handler() {
@@ -344,8 +401,23 @@ void interrupt_handler(int int_no, struct registers *regs) {
         case 0x21: // Keyboard interrupt
             keyboard_interrupt_handler();
             break;
-        case 0x23: // IRQ11 - предполагаем, что сетевая карта использует IRQ 11
+        case 0x23: // IRQ11 - Intel 8254x
             i8254x_interrupt_handler();
+            break;
+        case 0x24: // IRQ12 - Realtek RTL8168
+            rtl8168_interrupt_handler();
+            break;
+        case 0x25: // IRQ13 - Intel I219
+            i219_interrupt_handler();
+            break;
+        case 0x26: // IRQ14 - Intel AX2XX
+            intel_wifi_interrupt_handler();
+            break;
+        case 0x27: // IRQ15 - Intel AX210
+            intel_ax2xx_interrupt_handler();
+            break;
+        case 0x28: // IRQ16 - Intel i350/X710
+            intel_ethernet_interrupt_handler();
             break;
         case 0xE: // Page fault
             extern void page_fault_handler(uint64_t error_code, vaddr_t fault_addr);
@@ -387,7 +459,7 @@ void handle_syscall(struct registers *regs) {
             regs->rax = sys_lstat((char*)regs->rdi, (struct stat*)regs->rsi);
             break;
         case 8: // sys_poll
-            regs->rax = sys_poll((struct pollfd*)regs->rdi, regs->rsi, regs->rdx);
+            regs->rax = sys_poll((struct pollfd*)regs->rdi, regs->rsi,);
             break;
         case 9: // sys_lseek
             regs->rax = sys_lseek(regs->rdi, regs->rsi, regs->rdx);
@@ -498,7 +570,7 @@ void handle_syscall(struct registers *regs) {
             regs->rax = sys_sendto(regs->rdi, (const void*)regs->rsi, regs->rdx, regs->r10, (const struct sockaddr*)regs->r8, regs->r9);
             break;
         case 45: // sys_recvfrom
-            regs->rax = sys_recvfrom(regs->rdi, (void*)regs->rsi, regs->rdx, regs->r10, (struct sockaddr*)regs->r8, (socklen_t*)regs->r9);
+            regs->rax = sys_recvfrom(regs->rdi, (void*)regs->rsi, regs->rdx, regs->r10, (const struct sockaddr*)regs->r8, (socklen_t*)regs->r9);
             break;
         case 46: // sys_sendmsg
             regs->rax = sys_sendmsg(regs->rdi, (const struct msghdr*)regs->rsi, regs->rdx);
@@ -594,10 +666,10 @@ void handle_syscall(struct registers *regs) {
             regs->rax = sys_getrlimit(regs->rdi, (struct rlimit*)regs->rsi);
             break;
         case 79: // sys_getrusage
-            regs->rax = sys_getrusage(regs->rdi, (struct rusage*)regs->rsi);
+            regs->rax = sys_getrusage(regs->rdiusage*)regs->rsi);
             break;
         case 80: // sys_sysinfo
-            regs->rax = sys_sysinfo((struct sysinfo*)regs->rdi);
+            regs->rax = sys_sysinfo((struct sysinfo*)regs->rsi);
             break;
         case 81: // sys_times
             regs->rax = sys_times((struct tms*)regs->rsi);
@@ -812,7 +884,7 @@ void handle_syscall(struct registers *regs) {
         case 151: // sys_putpmsg
             regs->rax = sys_putpmsg((void*)regs->rdi, (void*)regs->rsi, (void*)regs->rdx, (void*)regs->r10, (void*)regs->r8);
             break;
-        case 152: // sys_afs_syscall
+        case 152: //call
             regs->rax = sys_afs_syscall((void*)regs->rdi, (void*)regs->rsi, (void*)regs->rdx, (void*)regs->r10);
             break;
         case 153: // sys_tuxcall
@@ -858,7 +930,7 @@ void handle_syscall(struct registers *regs) {
             regs->rax = sys_removexattr((char*)regs->rdi, (char*)regs->rsi);
             break;
         case 167: // sys_lremovexattr
-            regs->rax = sys_lremovexattr((char*)regs->rdi, (char*)regs->rsi);
+            regs->rax = sys_lremovexattr((char*)regs->rsi);
             break;
         case 168: // sys_fremovexattr
             regs->rax = sys_fremovexattr(regs->rdi, (char*)regs->rsi);
@@ -921,15 +993,16 @@ void handle_syscall(struct registers *regs) {
             regs->rax = sys_restart_syscall();
             break;
         case 189: // sys_semtimedop
-            regs->rax = sys_semtimedop(regs->rdi, (struct->rsi, regs->rdx, (const struct timespec*)regs->r10);
+            regs->rax = sys_semtimedop(regs->rdi, (struct sembuf*)regs->rsi, regs->rdx, (const struct timespec*)regs->r10);
             break;
         case 190: // sys_fadvise64
             regs->rax = sys_fadvise64(regs->rdi, regs->rsi, regs->rdx, regs->r10);
             break;
         case 191: // sys_timer_create
-            regs->rax = sys_timer_create(regs->rdi, (struct sigevent*)regs->rsi, (timer_t*)regs-> break;
+            regs->rax = sys_timer_create(regs->rdi, (struct sigevent*)regs->rsi, (timer_t*)regs->r8);
+            break;
         case 192: // sys_timer_settime
-            regs->rax = sys_timer_settime(regs->rdi, regs->rsi, (const struct itimerspec*)regs->rdx, (struct itimerspec*)regs->r8);
+            regs->rax = sys_timer_settime(regs->rdi, regs->rsi, (const struct itimerspec*)regs->rdx, (*)regs->r8);
             break;
         case 193: // sys_timer_gettime
             regs->rax = sys_timer_gettime(regs->rdi, (struct itimerspec*)regs->rsi);
@@ -946,11 +1019,10 @@ void handle_syscall(struct registers *regs) {
         case 197: // sys_clock_gettime
             regs->rax = sys_clock_gettime(regs->rdi, (struct timespec*)regs->rsi);
             break;
-        case 198: // sys_clock_getres
-            regs->rax = sys_clock_getres(regs->rdi, (struct timespec*)regs->rsi);
+        case 198: // sys_clock regs->rax = sys_clock_getres(regs->rdi, (struct timespec*)regs->rsi);
             break;
         case 199: // sys_clock_nanosleep
-            regs->rax = sys_clock_nanosleep(regs->rdi, regs->rsi, (const struct timespec*)regs->rdx, (struct timespec*)regs->r10);
+            regs->raxanosleep(regs->rdi, regs->rsi, (const struct timespec*)regs->rdx, (struct timespec*)regs->r10);
             break;
         case 200: // sys_exit_group
             regs->rax = sys_exit_group(regs->rdi);
@@ -1003,8 +1075,7 @@ void handle_syscall(struct registers *regs) {
         case 216: // sys_waitid
             regs->rax = sys_waitid(regs->rdi, regs->rsi, (struct siginfo*)regs->rdx, regs->r10, (struct rusage*)regs->r8);
             break;
-        case 217: // sys_add_key
-            regs->rax = sys_add_key((char*)regs->rdi, (char*)regs->rsi, (const void*)regs->rdx, regs->r10, regs->r8);
+        case 21 sys_add_key((char*)regs->rdi, (char*)regs->rsi, (const void*)regs->rdx, regs->r10, regs->r8);
             break;
         case 218: // sys_request_key
             regs->rax = sys_request_key((char*)regs->rdi, (char*)regs->rsi, (char*)regs->rdx, regs->r10);
@@ -1046,7 +1117,7 @@ void handle_syscall(struct registers *regs) {
             regs->rax = sys_futimesat(regs->rdi, (char*)regs->rsi, (const struct timeval*)regs->rdx);
             break;
         case 231: // sys_newfstatat
-            regs->rax = sys_newfstatat(regs->rdi, (char*)regs->rsi, (struct stat*)regs->rdx, regs->r10);
+ = sys_newfstatat(regs->rdi, (char*)regs->rsi, (struct stat*)regs->rdx, regs->r10);
             break;
         case 232: // sys_unlinkat
             regs->rax = sys_unlinkat(regs->rdi, (char*)regs->rsi, regs->rdx);
@@ -1145,9 +1216,7 @@ int sys_exit(int status) {
 }
 
 int sys_read(int fd, void *buf, size_t count) {
-    if(fd < 0 || fd >= MAX_OPEN_FILES || !current_process->open_files[fd]) return -1;
-    
-    struct file_descriptor *file = current_process->open_files[fd];
+    if(fd < 0 || fd >= MAX_OPEN_FILES || !current_process->open_files[fd]) return -1 file_descriptor *file = current_process->open_files[fd];
     if(file->type == 0) {
         uint8_t *data = (uint8_t*)file->data;
         size_t bytes_to_read = count;
@@ -1218,7 +1287,7 @@ int sys_close(int fd) {
     return 0;
 }
 
-int sys_stat(const char *pathname, struct stat *statbuf) {
+int sys_stat(const char *pathname, struct stat *) {
     if(!statbuf) return -1;
     // Simplified implementation
     memset(statbuf, 0, sizeof(struct stat));
@@ -1257,7 +1326,8 @@ int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout) {
 off_t sys_lseek(int fd, off_t offset, int whence) {
     if(fd < 0 || fd >= MAX_OPEN_FILES || !current_process->open_files[fd]) return -1;
     
-    struct file_descriptor *file = current_process->open_files off_t new_offset;
+    struct file_descriptor *file = current_process->open_files[fd];
+    off_t new_offset;
     
     switch(whence) {
         case SEEK_SET:
@@ -1334,7 +1404,7 @@ int sys_mprotect(void *addr, size_t len, int prot) {
 int sys_munmap(void *addr, size_t length) {
     if(!addr || length == 0) return -1;
     
-    vaddr_t start = (vaddr_t)addr;
+    vaddr_t start =_t)addr;
     uint32_t pages = (length + PAGE_SIZE - 1) / PAGE_SIZE;
     
     for(uint32_t i = 0; i < pages; i++) {
@@ -1364,7 +1434,7 @@ void *sys_brk(void *addr) {
                     if(!page) {
                         // Roll back allocation on failure
                         vaddr_t rollback_brk = old_brk + i * PAGE_SIZE;
-                        for(vaddr_t rollback_addr = old_brk; rollback_addr < rollback_brk; rollback_addr += PAGE_SIZE) {
+                        for(vaddr_t rollbackk; rollback_addr < rollback_brk; rollback_addr += PAGE_SIZE) {
                             paddr_t rollback_page = get_physical_address(current_process->page_dir, rollback_addr);
                             if(rollback_page) {
                                 free_page(rollback_page);
@@ -2627,7 +2697,7 @@ int sys_mq_timedsend(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned 
     return -1;
 }
 
-int sys_mq_timedreceive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned *msg_prio, const struct timespec *abs_timeout) {
+int sys_mq_timedreceive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned * const struct timespec *abs_timeout) {
     return -1;
 }
 
@@ -2815,11 +2885,37 @@ int sys_timerfd_gettime(int fd, struct itimerspec *curr_value) {
 
 // Network system call implementations
 int net_send(void* packet, size_t length) {
-    i8254x_transmit(packet, (uint32_t)length);
-    return length;
+    // Try different drivers based on which one was initialized
+    if(i8254x_is_initialized()) {
+        return i8254x_transmit(packet, (uint32_t)length);
+    } else if(rtl8168_is_initialized()) {
+        return rtl8168_send_packet(packet, (uint32_t)length);
+    } else if(i219_is_initialized()) {
+        return i219_transmit(packet, (uint32_t)length);
+    } else if(intel_wifi_is_initialized()) {
+        return intel_wifi_transmit(packet, (uint32_t)length);
+    } else if(intel_ax2xx_is_initialized()) {
+        return intel_ax2xx_transmit(packet, (uint32_t)length);
+    } else if(intel_ethernet_is_initialized()) {
+        return intel_ethernet_send_packet(packet, (uint32_t)length);
+    }
+    return -1;
 }
 
 int net_receive(void* packet, size_t max_length) {
-    uint32_t length = i8254x_poll(packet);
-    return (int)length;
+    // Try different drivers based on which one was initialized
+    if(i8254x_is_initialized()) {
+        return i8254x_poll(packet);
+    } else if(rtl8168_is_initialized()) {
+        return rtl8168_poll(packet);
+    } else if(i219_is_initialized()) {
+        return i219_poll(packet);
+    } else if(intel_wifi_is_initialized()) {
+        return intel_wifi_receive(packet, max_length);
+    } else if(intel_ax2xx_is_initialized()) {
+        return intel_ax2xx_receive_packet(packet, max_length);
+    } else if(intel_ethernet_is_initialized()) {
+        return intel_ethernet_receive_packet(packet, max_length);
+    }
+    return 0;
 }
