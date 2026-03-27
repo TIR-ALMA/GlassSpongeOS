@@ -24,7 +24,7 @@ typedef struct {
     uint64_t user : 1;
     uint64_t writethrough : 1;
     uint64_t cache_disabled : 1;
-    uint6 1;
+    uint64_t accessed : 1;
     uint64_t dirty : 1;
     uint64_t large_page : 1; // или PAT для PT
     uint64_t global : 1;
@@ -40,6 +40,10 @@ void map_page(uint64_t *page_dir, vaddr_t vaddr, paddr_t paddr, int flags);
 void unmap_page(uint64_t *page_dir, vaddr_t vaddr);
 struct page_table_entry *get_pte(uint64_t *page_dir, vaddr_t vaddr);
 void mm_init();
+
+// === НОВОЕ: Объявления kmalloc/kfree ===
+void* kmalloc(size_t size);
+void kfree(void* ptr);
 
 #endif
 
