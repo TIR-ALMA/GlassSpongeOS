@@ -76,7 +76,7 @@ int ip_validate_header(const struct ip_header* hdr, size_t total_len) {
         return -1;
     }
 
-    uint32_t(hdr->src_ip);
+    uint32_t src = ntohl(hdr->src_ip);
     if (src == 0 || src == 0xFFFFFFFF) {
         ip_stats.in_addr_errors++;
         return -1;
@@ -217,5 +217,22 @@ void ip_input(struct ethernet_frame* frame) {
     }
 
     ip_stats.in_delivers++;
+}
+
+// === НОВОЕ: Универсальный вход для драйверов ===
+void ip_input_from_driver(uint8_t* frame_data, uint32_t length) {
+    if (length < 14) return; // Слишком маленький фрейм
+
+    uint16_t ethertype = (frame_data[12] << 8) | frame_data[13];
+    if (ethertype == 0x0800) { // IP
+        struct ethernet_frame temp_frame;
+        memcpy(temp_frame.dest_mac, frame_data, 6);
+        memcpy(temp_frame.src_mac, frame_data + 6, 6);
+        temp_frame.ethertype = ethertype;
+        temp_frame.payload = frame_data + 14;
+        temp_frame.payload_len = length - 14;
+        
+        ip_input(&temp_frame);
+    }
 }
 
