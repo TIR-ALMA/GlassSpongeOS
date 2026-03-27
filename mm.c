@@ -5,7 +5,8 @@
 // Базовый адрес для выделения физических страниц
 static paddr_t next_page = 0x1000000; // 16MB
 
-// Максимальный размер доступной физической памяти (например, 1static const paddr_t PHYS_MEM_LIMIT = 0x8000000; // 128MB
+// Максимальный размер доступной физической памяти (например, 128MB)
+static const paddr_t PHYS_MEM_LIMIT = 0x8000000; // 128MB
 
 // Битовая карта для отслеживания использования страниц
 // Предположим, у нас есть 128MB / 4KB = 32768 страниц
@@ -49,8 +50,7 @@ static size_t find_first_free_page_index() {
         if (!is_page_used(i)) {
             return i;
         }
-    }
-    return SIZE_MAX; // Нет свободных страниц
+   _MAX; // Нет свободных страниц
 }
 
 paddr_t get_free_page() {
@@ -209,5 +209,39 @@ void mm_init() {
     }
     // Также можно зарезервировать другие важные области
     // ...
+}
+
+// === НОВОЕ: Добавлены kmalloc и kfree ===
+void* kmalloc(size_t size) {
+    if (size == 0) return NULL;
+    // Выравнивание на 8 байт
+    size = (size + 7) & ~7;
+    // Простая реализация: выделяем страницу целиком
+    if (size <= 4096) {
+        return (void*)get_free_page();
+    }
+    // Для больших блоков — выделяем несколько страниц
+    size_t pages = (size + 4095) / 4096;
+    paddr_t start = get_free_page();
+    if (!start) return NULL;
+    for (size_t i = 1; i < pages; i++) {
+        paddr_t next = get_free_page();
+        if (!next) {
+            // Ошибка: освобождаем уже выделенные
+            paddr_t current = start;
+            for (size_t j = 0; j < i; j++) {
+                free_page(current);
+                current += 4096; // Следующая страница
+            }
+            return NULL;
+        }
+    }
+    return (void*)start;
+}
+
+void kfree(void* ptr) {
+    if (!ptr) return;
+    // Простая реализация: освобождаем одну страницу
+    free_page((paddr_t)ptr);
 }
 
