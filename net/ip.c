@@ -76,7 +76,7 @@ int ip_validate_header(const struct ip_header* hdr, size_t total_len) {
         return -1;
     }
 
-    uint32_t src = ntohl(hdr->src_ip);
+    uint32_t(hdr->src_ip);
     if (src == 0 || src == 0xFFFFFFFF) {
         ip_stats.in_addr_errors++;
         return -1;
