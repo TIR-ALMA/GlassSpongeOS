@@ -51,5 +51,8 @@ int ip_is_multicast(uint32_t ip);
 int ip_is_loopback(uint32_t ip);
 int ip_is_private(uint32_t ip);
 
+// === НОВОЕ: Универсальный вход для драйверов ===
+void ip_input_from_driver(uint8_t* frame_data, uint32_t length);
+
 #endif
 
