@@ -33,6 +33,9 @@ typedef unsigned long nlink_t;
 typedef unsigned long blksize_t;
 typedef unsigned long blkcnt_t;
 
+// Добавлено для сетевых функций
+typedef enum { false = 0, true = 1 } bool;
+
 struct stat {
     dev_t st_dev;
     ino_t st_ino;
@@ -46,4 +49,25 @@ struct stat {
     blkcnt_t st_blocks;
 };
 
+// Константы для сокетов
+#define AF_INET         2
+#define SOCK_STREAM     1
+#define SOCK_DGRAM      2
+#define IPPROTO_TCP     6
+#define IPPROTO_UDP     17
+#define IPPROTO_ICMP    1
+
+// Структура для sockaddr_in
+struct in_addr {
+    uint32_t s_addr;
+};
+
+struct sockaddr_in {
+    uint16_t sin_family;
+    uint16_t sin_port;
+    struct in_addr sin_addr;
+    uint8_t sin_zero[8];
+};
+
 #endif
+
