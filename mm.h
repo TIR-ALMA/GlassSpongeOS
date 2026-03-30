@@ -41,7 +41,7 @@ void unmap_page(uint64_t *page_dir, vaddr_t vaddr);
 struct page_table_entry *get_pte(uint64_t *page_dir, vaddr_t vaddr);
 void mm_init();
 
-// === НОВОЕ: Объявления kmalloc/kfree ===
+// === ОБЯЗАТЕЛЬНОЕ: Объявления kmalloc/kfree ===
 void* kmalloc(size_t size);
 void kfree(void* ptr);
 
