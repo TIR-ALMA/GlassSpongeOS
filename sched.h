@@ -1,3 +1,4 @@
+// sched.h
 #ifndef SCHED_H
 #define SCHED_H
 
@@ -12,7 +13,8 @@ enum {
     PROC_READY,
     PROC_RUNNING,
     PROC_BLOCKED,
-    PROC_ZOMBIE
+    PROC_ZOMBIE,
+    PROC_INTERRUPTED // Добавлено для системных вызовов
 };
 
 struct registers {
@@ -34,6 +36,42 @@ struct file_descriptor {
     size_t offset;
     size_t size;
 };
+
+// Добавлено для очередей ожидания
+struct wait_queue_entry {
+    struct process* task;
+    struct wait_queue_entry* next;
+};
+
+typedef struct {
+    struct wait_queue_entry* head;
+} wait_queue_t;
+
+static inline void init_wait_queue(wait_queue_t* wq) {
+    wq->head = NULL;
+}
+
+// Добавлено дляtypedef struct {
+    volatile int lock;
+} spinlock_t;
+
+#define SPINLOCK_INIT {0}
+
+static inline void spin_lock_init(spinlock_t* lock) {
+    lock->lock = 0;
+}
+
+static inline void spin_lock(spinlock_t* lock) {
+    while(__sync_lock_test_and_set(&lock->lock, 1)) {
+        while(lock->lock) {
+            // yield или pause для эффективности
+        }
+    }
+}
+
+static inline void spin_unlock(spinlock_t* lock) {
+    __sync_lock_release(&lock->lock);
+}
 
 struct process {
     int state;
@@ -68,6 +106,10 @@ void switch_to_process(struct registers *regs);
 struct process *copy_process(struct process *parent);
 void sched_init();
 void schedule();
+
+// Добавлено для ожидания
+void wake_up(wait_queue_t* wq);
+int wait_event_interruptible(wait_queue_t* wq, int condition);
 
 #endif
 
