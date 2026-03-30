@@ -6,6 +6,8 @@
 #include "lib/string.h"
 #include "lib/printf.h"
 #include "mm.h"
+// === НОВОЕ: Добавлен импорт UDP ===
+#include "udp.h"
 
 struct ip_stats ip_stats = {0};
 static uint32_t local_ip = 0xC0A80102; // 192.168.1.2
@@ -207,7 +209,8 @@ void ip_input(struct ethernet_frame* frame) {
             // tcp_handle_packet(iph);
             break;
         case IP_PROTO_UDP:
-            // udp_handle_packet(iph);
+            // === НОВОЕ: Вызов обработчика UDP ===
+            udp_handle_packet(iph, payload, ntohs(iph->total_len) - hdr_len);
             break;
         default:
             ip_stats.in_unknown_protos++;
