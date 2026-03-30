@@ -6,7 +6,56 @@ struct process processes[MAX_PROCESSES];
 struct process *current_process = NULL;
 struct process *process_queue = NULL;
 
-struct process *create_process() {
+// Реализация спинлоков
+void spin_lock(spinlock_t* lock) {
+    while(__sync_lock_test_and_set(&lock->lock, 1)) {
+        while(lock->lock) {
+            // yield или pause для эффективности
+        }
+    }
+}
+
+void spin_unlock(spinlock_t* lock) {
+    __sync_lock_release(&lock->lock);
+}
+
+// Реализация очередей ожидания
+void wake_up(wait_queue_t* wq) {
+    struct wait_queue_entry* entry = w    while(entry) {
+        if(entry->task) {
+            entry->task->state = PROC_READY;
+        }
+        entry = entry->next;
+    }
+}
+
+int wait_event_interruptible(wait_queue_t* wq, int condition) {
+    if(condition) return 0; // Условие уже выполнено
+
+    struct wait_queue_entry entry;
+    entry.task = current_process;
+    entry.next = wq->head;
+    wq->head = &entry;
+
+    current_process->state = PROC_BLOCKED;
+    schedule(); // Передача управления другому процессу
+
+    // Удаление из очереди после пробуждения
+    struct wait_queue_entry** ptr = &wq->head;
+    while(*ptr && *ptr != &entry) {
+        ptr = &(*ptr)->next;
+    }
+    if(*ptr) {
+        *ptr = entry.next;
+    }
+
+    if(current_process->state == PROC_INTERRUPTED) {
+        return -1; // Процесс был прерван
+    }
+    return 0;
+}
+
+_process() {
     for(int i = 0; i < MAX_PROCESSES; i++) {
         if(processes[i].state == PROC_FREE) {
             // Обнулить всю структуру процесса
