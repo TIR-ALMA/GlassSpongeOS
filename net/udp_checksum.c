@@ -2,7 +2,7 @@
 #include "lib/string.h"
 
 uint16_t udp_checksum(const void* data, size_t len,
-                      uint32_t, uint32_t dst_ip, uint16_t udp_len) {
+                      uint32_t src_ip, uint32_t dst_ip, uint16_t udp_len) {
     // Вычисляем чек-сумму как 16-битную сумму слов (с переносом)
     uint32_t sum = 0;
     const uint16_t* ptr = (const uint16_t*)data;
@@ -12,7 +12,7 @@ uint16_t udp_checksum(const void* data, size_t len,
         .src_ip = src_ip,
         .dst_ip = dst_ip,
         .zero = 0,
-        .protocol = IP_PROTO_UDP,
+        .protocol = 17, // IP_PROTO_UDP
         .udp_len = udp_len
     };
 
@@ -39,3 +39,4 @@ uint16_t udp_checksum(const void* data, size_t len,
 
     return ~sum;
 }
+
