@@ -63,8 +63,7 @@ https://m.youtube.com/watch?v=5bgkgVgOcSY
 
 
 
-❗️❗️❗️Attention❗️❗️❗️
-A large number of network card drivers have been implemented, but some refinement is needed. A network stack needs to be added to the project itself, and the kernel itself needs to be expanded.
+the network stack is 70% implemented
 
 
 
