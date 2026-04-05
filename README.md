@@ -28,7 +28,7 @@ Total number of people involved in the project - 1
 
 # Developer company - ALMA ,a division of torg 
 
-Total project lifespan - 4 days 
+Total project lifespan - 5 days 
 
 Development tools used:
 
@@ -37,6 +37,8 @@ Neural networks:
 Qwen3-coder
 
 Qwen3.5-plus 
+
+I*m human
 
 Programming tools:
 
