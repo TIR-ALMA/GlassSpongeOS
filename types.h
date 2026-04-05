@@ -33,7 +33,7 @@ typedef unsigned long nlink_t;
 typedef unsigned long blksize_t;
 typedef unsigned long blkcnt_t;
 
-// Добавлено для сетевых функций
+// для сетевых функций
 typedef enum { false = 0, true = 1 } bool;
 
 struct stat {
@@ -68,6 +68,14 @@ struct sockaddr_in {
     struct in_addr sin_addr;
     uint8_t sin_zero[8];
 };
+
+// Добавить недостающие типы для сетевых функций
+typedef uint32_t in_addr_t;
+typedef uint16_t in_port_t;
+typedef uint32_t sa_family_t;
+
+// Размеры страниц и других структур
+#define PAGE_SIZE 4096
 
 #endif
 
