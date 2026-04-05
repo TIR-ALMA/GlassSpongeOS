@@ -3,7 +3,8 @@
 #include "lib/printf.h"
 #include "../sched.h"
 #include "../lib/stdarg.h"
-#include "../liquid_nn.h"
+#include"
+#include "../net/network.h"  // Добавить для network_poll()
 
 // Счетчик тиков с момента запуска
 volatile unsigned long timer_ticks = 0;
@@ -35,6 +36,9 @@ void timer_handler() {
         // Пример обучения: PID=1, время=0, частота=100, активен=1
         kernel_liquid_predict(1, timer_ticks, 100, 1);
     }
+    
+    // Добавить вызов сетевого poll
+    network_poll();
     
     // Отправить EOI (End of Interrupt) контроллеру прерываний
     __asm__ volatile("outb $0x20, $0xA0"); // Slave PIC
