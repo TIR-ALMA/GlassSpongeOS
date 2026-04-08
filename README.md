@@ -28,7 +28,7 @@ Total number of people involved in the project - 1
 
 # Developer company - ALMA ,a division of torg 
 
-Total project lifespan - 5 days 
+Total project lifespan - 6 days 
 
 Development tools used:
 
